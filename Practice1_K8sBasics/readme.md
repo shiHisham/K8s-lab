@@ -32,10 +32,11 @@ Deploy your very first application on Kubernetes using raw YAML files and `kubec
 ## 🧱 What We'll Do
 
 1. Write a simple **Pod manifest** using NGINX
-2. Expose it via a **Service** (NodePort)
-3. Explore the running pod using `kubectl`
-4. Open your app in the browser
-5. Clean up the environment
+2. Replace it with a **Deployment** with 3 replicas
+3. Expose it via a **Service** (NodePort)
+4. Explore the running pods using `kubectl`
+5. Open your app in the browser
+6. Clean up the environment
 
 ---
 
@@ -45,6 +46,7 @@ Practice1_K8s_Basics/
 ├── README.md
 ├── manifests/
 │   ├── nginx-pod.yaml
+│   ├── nginx-deployment.yaml
 │   └── nginx-service.yaml
 └── screenshots/ (optional)
 ```
@@ -53,7 +55,7 @@ Practice1_K8s_Basics/
 
 ## 🛠️ Step-by-Step Instructions
 
-### 1️⃣ Create the Pod Manifest
+### 1️⃣ Create the Pod Manifest (Optional for Reference)
 `manifests/nginx-pod.yaml`
 ```yaml
 apiVersion: v1
@@ -69,22 +71,60 @@ spec:
       ports:
         - containerPort: 80
 ```
-
 Apply it:
 ```bash
 kubectl apply -f manifests/nginx-pod.yaml
 ```
-
 Check the pod:
 ```bash
 kubectl get pods
 kubectl describe pod nginx-pod
 kubectl logs nginx-pod
 ```
+Delete it before continuing:
+```bash
+kubectl delete -f manifests/nginx-pod.yaml
+```
 
 ---
 
-### 2️⃣ Create a Service
+### 2️⃣ Create a Deployment with Replicas
+`manifests/nginx-deployment.yaml`
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+```
+Apply it:
+```bash
+kubectl apply -f manifests/nginx-deployment.yaml
+```
+Check running pods:
+```bash
+kubectl get deployments
+kubectl get pods
+kubectl describe deployment nginx-deployment
+```
+
+---
+
+### 3️⃣ Create a Service
 `manifests/nginx-service.yaml`
 ```yaml
 apiVersion: v1
@@ -98,14 +138,12 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30036  # Can be between 30000–32767
+      nodePort: 30036  # Optional: fixed port
 ```
-
 Apply the service:
 ```bash
 kubectl apply -f manifests/nginx-service.yaml
 ```
-
 Find the URL to open:
 ```bash
 minikube service nginx-service --url
@@ -113,25 +151,28 @@ minikube service nginx-service --url
 
 ---
 
-### 3️⃣ Clean Up
+### 4️⃣ Clean Up
 ```bash
 kubectl delete -f manifests/nginx-service.yaml
-kubectl delete -f manifests/nginx-pod.yaml
+kubectl delete -f manifests/nginx-deployment.yaml
 ```
 
 ---
 
 ## ✅ Outcomes
-- First successful Kubernetes deployment
-- Understood Pod/Service structure
-- Used kubectl to manage cluster
+- First successful Kubernetes Deployment
+- Understood difference between Pod and Deployment
+- Learned how to scale replicas
+- Accessed service via external port
 
 ---
 
 ## 🧠 Bonus Tips
-- Use `kubectl explain pod` to learn about YAML fields
-- Try scaling with Deployments next!
+- Use `kubectl scale deployment nginx-deployment --replicas=5` to test scaling
+- Try `kubectl rollout restart deployment nginx-deployment`
+- Use `kubectl describe` to inspect changes
 
 ---
 
-## 📸 Screenshots
+## 📸 Screenshots (optional)
+Add your screenshots here if you want to keep visual proof of progress!
