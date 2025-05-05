@@ -35,8 +35,10 @@ Deploy your very first application on Kubernetes using raw YAML files and `kubec
 2. Replace it with a **Deployment** with 3 replicas
 3. Expose it via a **Service** (NodePort)
 4. Explore the running pods using `kubectl`
-5. Open your app in the browser
-6. Clean up the environment
+5. Perform a rolling update with a new image version
+6. Scale replicas manually and test behavior
+7. Open your app in the browser
+8. Clean up the environment
 
 ---
 
@@ -151,9 +153,37 @@ minikube service nginx-service --url
 
 ---
 
-### 4️⃣ Clean Up
+### 4️⃣ Perform a Rolling Update
+Update the image to a specific version:
 ```bash
-kubectl delete -f manifests/nginx-service.yaml
+kubectl set image deployment/nginx-deployment nginx=nginx:1.25
+```
+Check rollout status:
+```bash
+kubectl rollout status deployment/nginx-deployment
+```
+View updated pods:
+```bash
+kubectl get pods -o wide
+```
+
+---
+
+### 5️⃣ Scale Replicas
+Scale to 5 pods:
+```bash
+kubectl scale deployment nginx-deployment --replicas=5
+```
+Then back to 2:
+```bash
+kubectl scale deployment nginx-deployment --replicas=2
+```
+
+---
+
+### 6️⃣ Clean Up
+```bash
+kubectl deoklete -f manifests/nginx-service.yaml
 kubectl delete -f manifests/nginx-deployment.yaml
 ```
 
@@ -163,14 +193,15 @@ kubectl delete -f manifests/nginx-deployment.yaml
 - First successful Kubernetes Deployment
 - Understood difference between Pod and Deployment
 - Learned how to scale replicas
+- Performed a rolling update
 - Accessed service via external port
 
 ---
 
 ## 🧠 Bonus Tips
-- Use `kubectl scale deployment nginx-deployment --replicas=5` to test scaling
-- Try `kubectl rollout restart deployment nginx-deployment`
-- Use `kubectl describe` to inspect changes
+- Use `kubectl rollout undo deployment nginx-deployment` to roll back
+- Try `kubectl get rs` to explore ReplicaSets
+- Use `kubectl top pods` (after enabling metrics) to monitor resource usage
 
 ---
 
