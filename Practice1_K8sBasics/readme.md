@@ -37,8 +37,9 @@ Deploy your very first application on Kubernetes using raw YAML files and `kubec
 4. Explore the running pods using `kubectl`
 5. Perform a rolling update with a new image version
 6. Scale replicas manually and test behavior
-7. Open your app in the browser
-8. Clean up the environment
+7. Simulate pod failure and observe self-healing
+8. Open your app in the browser
+9. Clean up the environment
 
 ---
 
@@ -181,9 +182,28 @@ kubectl scale deployment nginx-deployment --replicas=2
 
 ---
 
-### 6️⃣ Clean Up
+### 6️⃣ Simulate Pod Failure (Self-Healing)
+Delete one of the running pods manually:
 ```bash
-kubectl deoklete -f manifests/nginx-service.yaml
+kubectl get pods
+kubectl delete pod <one-nginx-pod-name>
+```
+Then watch what happens:
+```bash
+kubectl get pods -w
+```
+➡️ You’ll see Kubernetes **automatically recreate** the missing pod to maintain the desired replica count.
+
+Also check the ReplicaSet:
+```bash
+kubectl get rs
+```
+
+---
+
+### 7️⃣ Clean Up
+```bash
+kubectl delete -f manifests/nginx-service.yaml
 kubectl delete -f manifests/nginx-deployment.yaml
 ```
 
@@ -194,6 +214,7 @@ kubectl delete -f manifests/nginx-deployment.yaml
 - Understood difference between Pod and Deployment
 - Learned how to scale replicas
 - Performed a rolling update
+- Observed self-healing behavior of Deployment controller
 - Accessed service via external port
 
 ---
@@ -201,7 +222,6 @@ kubectl delete -f manifests/nginx-deployment.yaml
 ## 🧠 Bonus Tips
 - Use `kubectl rollout undo deployment nginx-deployment` to roll back
 - Try `kubectl get rs` to explore ReplicaSets
-- Use `kubectl top pods` (after enabling metrics) to monitor resource usage
 
 ---
 
