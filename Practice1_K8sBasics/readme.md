@@ -224,6 +224,3 @@ kubectl delete -f manifests/nginx-deployment.yaml
 - Try `kubectl get rs` to explore ReplicaSets
 
 ---
-
-## 📸 Screenshots (optional)
-Add your screenshots here if you want to keep visual proof of progress!
