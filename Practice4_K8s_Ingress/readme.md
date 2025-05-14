@@ -1,29 +1,26 @@
 # 📘 Practice 4 - Ingress and Domain-Based Routing in Kubernetes
 
 ## 🎯 Goal
-Learn how to expose services using domain names (like `myapp.local`) using an Ingress Controller. Understand how Ingress works compared to NodePort and ClusterIP.
+Learn how to expose services using domain names (like `hello.local`) using an Ingress Controller. Understand how Ingress compares to NodePort and ClusterIP and why it’s used in real-world deployments.
 
 ---
 
 ## 📚 What You’ll Learn
 - What is an **Ingress** in Kubernetes
-- The difference between **NodePort**, **LoadBalancer**, and **Ingress**
-- How to set up **Ingress Controller** in Minikube
-- How to define **Ingress rules** to route traffic by hostname or path
-- How to test routing with your browser using a fake domain name
+- Difference between **ClusterIP**, **NodePort**, **LoadBalancer**, and **Ingress**
+- How to install and configure the **NGINX Ingress Controller**
+- How to define **Ingress rules** to route traffic by hostname
+- How to update your local DNS resolution using `/etc/hosts`
 
 ---
 
 ## 🧱 What We'll Do
-
-1. Set up NGINX Ingress Controller on Minikube
-2. Deploy two apps (`hello-app` and `world-app`)
-3. Create services to expose both apps internally
-4. Create an Ingress resource to route:
-    - `http://hello.local` → hello-app
-    - `http://world.local` → world-app
-5. Update your local `hosts` file to simulate DNS
-6. Access apps in the browser using custom domains
+1. Deploy two basic apps (`hello-app` and `world-app`)
+2. Create services for both apps (internal exposure)
+3. Enable NGINX Ingress Controller
+4. Patch the controller service to type `LoadBalancer`
+5. Create an Ingress rule to map hostnames to services
+6. Update `/etc/hosts` to simulate DNS resolution
 
 ---
 
@@ -45,137 +42,76 @@ Practice4_K8s_Ingress/
 
 ## 🛠️ Step-by-Step Instructions
 
-### 1️⃣ Enable NGINX Ingress Controller
-```bash
-minikube addons enable ingress
-```
-Wait until the pod is running:
-```bash
-kubectl get pods -n kube-system -l app.kubernetes.io/name=ingress-nginx
-```
-
----
-
-### 2️⃣ Deploy Sample Apps
-#### `hello-deployment.yaml`
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hello-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: hello
-  template:
-    metadata:
-      labels:
-        app: hello
-    spec:
-      containers:
-        - name: hello
-          image: hashicorp/http-echo
-          args:
-            - "-text=Hello World"
-          ports:
-            - containerPort: 5678
-```
-
-#### `world-deployment.yaml`
-Same as above, change name, label, and message:
-```yaml
-metadata:
-  name: world-app
-...
-args:
-  - "-text=World Peace"
-```
+### 1️⃣ Deploy Sample Apps
 ```bash
 kubectl apply -f manifests/hello-deployment.yaml
 kubectl apply -f manifests/world-deployment.yaml
 ```
+These apps use the `hashicorp/http-echo` container to return a custom message.
 
 ---
 
-### 3️⃣ Create Services
-```yaml
-# hello-service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: hello-service
-spec:
-  selector:
-    app: hello
-  ports:
-    - port: 80
-      targetPort: 5678
-```
-```yaml
-# world-service.yaml (same, change name/selector)
-```
+### 2️⃣ Create Services
 ```bash
 kubectl apply -f manifests/hello-service.yaml
 kubectl apply -f manifests/world-service.yaml
 ```
+Services expose each app within the cluster via port `80`, forwarding traffic to container port `5678`.
 
 ---
 
-### 4️⃣ Create the Ingress Resource
-```yaml
-# ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: example-ingress
-spec:
-  rules:
-    - host: hello.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: hello-service
-                port:
-                  number: 80
-    - host: world.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: world-service
-                port:
-                  number: 80
+### 3️⃣ Enable Ingress Controller
+Enable the official ingress addon from Minikube:
+```bash
+minikube addons enable ingress
 ```
+Wait until the pods are running:
+```bash
+kubectl get pods -n ingress-nginx
+```
+If the controller is not of type `LoadBalancer`, patch it:
+```bash
+kubectl patch svc ingress-nginx-controller -n ingress-nginx \
+  -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+---
+
+### 4️⃣ Create Ingress Resource
 ```bash
 kubectl apply -f manifests/ingress.yaml
 ```
+This maps `hello.local` and `world.local` to their respective services.
 
 ---
 
-### 5️⃣ Update Your Hosts File (Simulate DNS)
-Edit:
+### 5️⃣ Update Hosts File (Simulate DNS)
 ```bash
-sudo nano /etc/hosts  # or C:\Windows\System32\drivers\etc\hosts
+sudo nano /etc/hosts
 ```
-Add:
+Add the Ingress IP:
 ```
-127.0.0.1 hello.local
-127.0.0.1 world.local
+192.168.49.2 hello.local
+192.168.49.2 world.local
 ```
-✅ Now your browser will route those domains to Minikube!
+Use `kubectl describe ingress example-ingress` to confirm the IP (usually matches Minikube IP).
+
+---
+
+### 6️⃣ Test Routing
+Use `curl` to simulate browser access:
+```bash
+curl -H "Host: hello.local" http://192.168.49.2
+curl -H "Host: world.local" http://192.168.49.2
+```
+Or open in a browser: `http://hello.local`, `http://world.local`
 
 ---
 
 ## ✅ Outcomes
-- Understood why Ingress is more flexible than NodePort
-- Used host-based routing to simulate real production setups
-- Tested domain-based traffic with NGINX Ingress
+- Understood the role of an **Ingress Controller**
+- Successfully exposed services using **host-based routing**
+- Practiced internal vs external access with **Service** and **Ingress**
 
 ---
 
@@ -211,4 +147,4 @@ make clean
 ---
 
 ## 📸 Screenshots (optional)
-Add browser screenshots showing `hello.local` and `world.local` work
+Include screenshots of browser responses to `http://hello.local` and `http://world.local` if you'd like.
