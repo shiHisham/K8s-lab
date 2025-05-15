@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: configmap-demo-svc
+spec:
+  selector:
+    app: configmap-demo
+  ports:
+    - port: 80
+      targetPort: 3000

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configmap-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: configmap-demo
+  template:
+    metadata:
+      labels:
+        app: configmap-demo
+    spec:
+      containers:
+        - name: app
+          image: health-demo:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: APP_GREETING
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: APP_GREETING
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: app-config
+            items:
+              - key: message.txt
+                path: message.txt
