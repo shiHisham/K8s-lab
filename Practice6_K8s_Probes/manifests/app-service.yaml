@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-demo-svc
+spec:
+  selector:
+    app: health-demo
+  ports:
+    - port: 80
+      targetPort: 3000
+      

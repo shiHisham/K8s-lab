@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: health-demo
+  template:
+    metadata:
+      labels:
+        app: health-demo
+    spec:
+      containers:
+        - name: app
+          image: health-demo:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
