@@ -14,17 +14,18 @@ Learn how to manage **static configuration** in Kubernetes using **ConfigMaps**,
 
   * As environment variables
   * As mounted volumes (files)
+* How ConfigMaps create files on-the-fly using key–path mapping
 * How to reload pods when config changes (manually)
 
 ---
 
 ## 🧱 What We'll Do
 
-1. Create a ConfigMap with app configuration values
-2. Update the Node.js app to read config from env vars and files
-3. Mount the ConfigMap into the pod using both methods
-4. Verify the injected values inside the container
-5. Modify the ConfigMap and observe what happens
+1. Create a ConfigMap with key/value config
+2. Update a Node.js app to read from env vars and mounted file
+3. Use a different file path/key to verify flexibility
+4. Track how mounted files appear inside the container
+5. Simulate real-world debugging when config is missing or incorrect
 
 ---
 
@@ -46,7 +47,7 @@ Practice7_K8s_ConfigMaps/
 
 ---
 
-## 🤠 Step 1 - Create a Simple Config-Aware App
+## 🤠 Step 1 - Create a Config-Aware App
 
 ```js
 // app/server.js
@@ -54,13 +55,10 @@ const express = require('express');
 const fs = require('fs');
 const app = express();
 
-// Read config from environment variable
 const greetingEnv = process.env.APP_GREETING || 'Hello from ENV!';
-
-// Read config from mounted file
 let greetingFile = 'File not found';
 try {
-  greetingFile = fs.readFileSync('/etc/config/message.txt', 'utf8');
+  greetingFile = fs.readFileSync('/etc/config/message_file.txt', 'utf8');
 } catch (err) {
   greetingFile = `Error reading file: ${err.message}`;
 }
@@ -79,7 +77,6 @@ app.listen(3000, () => {
 ## 📂 Step 2 - Dockerfile
 
 ```Dockerfile
-# Dockerfile
 FROM node:18-alpine
 WORKDIR /app
 COPY app /app
@@ -96,11 +93,11 @@ CMD ["node", "server.js"]
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: app-config
+  name: app-config-p7
 
 data:
   APP_GREETING: "Hello from ConfigMap!"
-  message.txt: "This file was mounted from a ConfigMap."
+  message_key.txt: "This file was mounted from a ConfigMap."
 ```
 
 ---
@@ -126,13 +123,14 @@ spec:
       containers:
         - name: app
           image: health-demo-p7:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 3000
           env:
             - name: APP_GREETING
               valueFrom:
                 configMapKeyRef:
-                  name: app-config
+                  name: app-config-p7
                   key: APP_GREETING
           volumeMounts:
             - name: config-volume
@@ -141,10 +139,10 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: app-config
+            name: app-config-p7
             items:
-              - key: message.txt
-                path: message.txt
+              - key: message_key.txt
+                path: message_file.txt
 ```
 
 ---
@@ -167,19 +165,19 @@ spec:
 
 ---
 
-## 🧪 Step 6 - Build, Apply, and Test
+## 🧪 Step 6 - Build, Apply, and Inspect
 
 ```bash
-# Use Minikube Docker daemon
+# Use Minikube Docker
 eval $(minikube docker-env)
 
-# Build the image inside Minikube
+# Build app image
 docker build -t health-demo-p7:latest .
 
-# Apply all manifests
+# Apply manifests
 kubectl apply -f manifests/
 
-# Forward port to access the app
+# Port forward
 kubectl port-forward svc/configmap-demo-svc 8080:80
 ```
 
@@ -189,32 +187,50 @@ Test it:
 curl localhost:8080
 ```
 
-Expected output:
+You should see:
 
 ```
 ENV: Hello from ConfigMap!
 FILE: This file was mounted from a ConfigMap.
 ```
 
----
-
-## 🔁 Step 7 - Modify ConfigMap & Reload Pod
+Check file exists inside container:
 
 ```bash
-kubectl edit configmap app-config
+kubectl exec -it <pod-name> -- cat /etc/config/message_file.txt
+```
+
+---
+
+## 🔁 Step 7 - Update & Debug ConfigMap
+
+If file/key/path is wrong, pod may fail or start but log errors.
+
+To change config:
+
+```bash
+kubectl delete configmap app-config-p7
+kubectl create configmap app-config-p7 \
+  --from-literal=APP_GREETING="Updated!" \
+  --from-literal=message_key.txt="New message from updated config."
+
 kubectl delete pod -l app=configmap-demo
 ```
 
-➡️ Edit `message.txt` or `APP_GREETING`, then restart the pod to see changes.
+Revisit:
+
+```bash
+curl localhost:8080
+```
 
 ---
 
 ## ✅ Outcomes
 
-* Injected environment variables and files using ConfigMap
-* Verified config inside the app with curl and logs
-* Understood limitations: configs do not auto-refresh
-* Used `kubectl edit` + `delete pod` to force update
+* Built a Node.js app that loads env and file-based config
+* Used ConfigMap to inject both as files and environment variables
+* Validated the real creation of mounted files inside the container
+* Simulated broken paths and debugged using `kubectl describe`
 
 ---
 
@@ -230,13 +246,14 @@ apply:
 port:
 	kubectl port-forward svc/configmap-demo-svc 8080:80
 
-edit:
-	kubectl patch configmap app-config \
-      --type merge \
-      -p '{"data":{"APP_GREETING":"Bonjour depuis le patch !"}}'
-
-restart:
+reload:
 	kubectl delete pod -l app=configmap-demo
+
+recreate-config:
+	kubectl delete configmap app-config-p7
+	kubectl create configmap app-config-p7 \
+		--from-literal=APP_GREETING="Updated!" \
+		--from-literal=message_key.txt="New message"
 
 clean:
 	kubectl delete -f manifests/ --ignore-not-found
@@ -244,17 +261,17 @@ clean:
 
 ---
 
-Run with:
+Use like:
 
 ```bash
 make build
 make apply
 make port
-make edit
-make restart
+make recreate-config
+make reload
 make clean
 ```
 
 ---
 
-Ready for the quiz or next practice? 🚀
+🧠 You now understand how Kubernetes **builds files from keys**, how they appear live in containers, and how to troubleshoot config injection issues.
