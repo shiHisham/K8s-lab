@@ -8,7 +8,7 @@ const greetingEnv = process.env.APP_GREETING || 'Hello from ENV!';
 // Read config from mounted file
 let greetingFile = 'File not found';
 try {
-  greetingFile = fs.readFileSync('/etc/config/message.txt', 'utf8');
+  greetingFile = fs.readFileSync('/etc/config/message_file.txt', 'utf8');
 } catch (err) {
   greetingFile = `Error reading file: ${err.message}`;
 }
