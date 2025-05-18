@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secret-demo
+  template:
+    metadata:
+      labels:
+        app: secret-demo
+    spec:
+      containers:
+        - name: app
+          image: health-demo-p8:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret-p8
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: secret-volume
+              mountPath: /etc/secret
+              readOnly: true
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: app-secret-p8
+            items:
+              - key: api-token.txt
+                path: api-token.txt
