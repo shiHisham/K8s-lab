@@ -1,0 +1,25 @@
+serverBlock: |-
+  server {
+    listen 8080;
+    server_name 192.168.49.2;
+
+    location /custom {
+      add_header Content-Type text/plain;
+      return 200 'This is a custom route!';
+    }
+
+    location / {
+      return 200 'Welcome to Bitnami NGINX!';
+    }
+  }
+
+containerPort: 8080
+
+service:
+  type: NodePort
+  ports:
+    http: 8080
+    https: 8443
+  nodePorts:
+    http: 32080
+    https: 32443
