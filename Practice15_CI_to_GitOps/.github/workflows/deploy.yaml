@@ -1,0 +1,25 @@
+name: CI Update Helm Values
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-values:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Modify Helm values.yaml
+        run: |
+          sed -i 's/replicaCount: [0-9]\+/replicaCount: 3/' Practice15_CI_to_GitOps/my-helm-app/values.yaml
+
+      - name: Commit changes
+        run: |
+          git config --global user.name 'CI Bot'
+          git config --global user.email 'ci-bot@example.com'
+          git add Practice15_CI_to_GitOps/my-helm-app/values.yaml
+          git commit -m "CI: Updated replicaCount via GitHub Actions" || echo "No changes"
+          git push
